@@ -2,6 +2,7 @@ import { generateGrid, generatePlayers } from '../generate';
 
 interface Rooms {
   [roomId: string]: {
+    id?: string;
     players: {
       socketId: string;
       name?: string;
@@ -19,73 +20,110 @@ interface RoomPayload {
 }
 
 export function addListeners(io: any, socket: any) {
-  const roomId = '';
+  let roomId = '';
 
-  socket.on(
-    'join',
-    ({ roomId: newRoomId, roomName: newRoomName }: RoomPayload) => {
-      console.log('join: ', socket.id);
+  // send active rooms when client connects to socket
+  io.to(socket.id).emit('rooms:update', rooms);
+  console.log('send: rooms:update', rooms);
 
-      if (!rooms[newRoomId]) {
-        rooms[newRoomId] = { players: [] };
-      }
+  socket.on('room:create', ({ name }) => {
+    console.log('event: room:create');
+    if (!rooms[socket.id]) {
+      rooms[socket.id] = {
+        id: socket.id,
+        name,
+        players: [{ socketId: socket.id }],
+      };
+    }
 
-      const socketExists = rooms[newRoomId].players.find(
-        ({ socketId }) => socketId === socket.id,
-      );
+    roomId = socket.id;
 
-      if (socketExists) {
-        return;
-      }
+    console.log('send: rooms:update');
+    socket.emit('rooms:update', rooms);
+  });
 
-      rooms[newRoomId].players.push({ socketId: socket.id });
-      rooms[newRoomId].name = newRoomName;
+  socket.on('room:join', ({ roomId: id }: RoomPayload) => {
+    console.log('event: room:join', id);
+    // check if socket exists
+    const socketExists = rooms[id]?.players.find(
+      ({ socketId }) => socketId === socket.id,
+    );
 
-      socket.join(newRoomId);
-      io.in(newRoomId).emit('room:update', rooms[newRoomId].players);
-    },
-  );
+    if (socketExists) {
+      return;
+    }
+
+    // set roomId for new socket
+    roomId = id;
+
+    // add player to room's data
+    rooms[id].players.push({ socketId: socket.id });
+
+    // join room
+    socket.join(id);
+
+    // update room
+    io.in(id).emit('room:update', rooms[id]);
+    console.log('send: room:update', rooms[id]);
+  });
+
+  socket.on('room:leave', ({}: RoomPayload) => {
+    console.log('event: room:leave', roomId);
+    // remove player from room data
+    rooms[roomId].players = rooms[roomId]?.players.filter(
+      ({ socketId }) => socketId !== socket.id,
+    );
+
+    // leave room
+    socket.leave(roomId);
+
+    // update room
+    io.in(roomId).emit('room:update', rooms[roomId]);
+    console.log('send: room:update', rooms[roomId]);
+  });
 
   socket.on('update:player', ({ name }: RoomPayload) => {
-    console.log('update:player');
-    console.log('roomId: ', roomId);
-
+    // update player name
     rooms[roomId].players = rooms[roomId]?.players?.map((player) =>
       player.socketId === socket.id ? { ...player, name } : player,
     );
 
-    io.in(roomId).emit('update:players', rooms[roomId]?.players);
+    // update room
+    io.in(roomId).emit('room:update', rooms[roomId]);
   });
 
-  socket.on('start', (payload: RoomPayload) => {
-    console.log('start');
+  socket.on('start', () => {
+    console.log('event: game:start', roomId);
+
     const blocks = 16;
+
+    // generate grid
     const grid = generateGrid(blocks);
+
+    // format players data
     const players = generatePlayers(rooms[roomId]?.players, blocks);
-    console.log({ grid, players });
-    io.in(roomId).emit('start', { grid, players });
+
+    // update room to start game
+    io.in(roomId).emit('game:start', { grid, players });
   });
 
   socket.on('move', (payload: RoomPayload) => {
-    console.log('##### move');
-    socket.broadcast.to(roomId).emit('move', payload);
+    socket.broadcast.to(roomId).emit('game:move', payload);
   });
 
   socket.on('bomb', (payload: RoomPayload) => {
-    console.log('##### bomb');
-    socket.broadcast.to(roomId).emit('bomb', payload);
+    socket.broadcast.to(roomId).emit('game:bomb', payload);
   });
 
   socket.on('disconnect', (reason) => {
-    console.log('amount players: ', rooms[roomId]?.players?.length);
-    console.log('disconnect');
+    console.log('event: disconnect', socket.id);
 
     if (rooms[roomId]) {
-      rooms[roomId].players = rooms[roomId]?.players?.filter(
-        ({ socketId }) => socket.id !== socketId,
+      rooms[roomId].players = rooms[roomId]?.players.filter(
+        ({ socketId }) => socketId !== socket.id,
       );
     }
 
-    io.in(roomId).emit('update:players', rooms[roomId]?.players);
+    io.in(roomId).emit('room:update', rooms[roomId]);
   });
 }

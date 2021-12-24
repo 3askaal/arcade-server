@@ -12,7 +12,6 @@ export const io = new Server(1338, {
   },
 });
 
-
 @Module({
   imports: [ConfigModule.forRoot()],
   controllers: [AppController],
@@ -25,7 +24,7 @@ export class AppModule {
 
   async setup(): Promise<void> {
     io.on('connection', (socket) => {
-      addListeners(io, socket)
+      addListeners(io, socket);
     });
   }
 }
