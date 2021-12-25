@@ -6,12 +6,14 @@ import { AppService } from './app.service';
 import { addListeners } from './app.listeners';
 import { CONFIG } from 'src/config';
 
-export const io = new Server(CONFIG.SOCKET_PORT, {
+export const io = new Server({
   cors: {
     origin: ['http://localhost:3000', 'https://b0mberman.vercel.app/'],
     methods: ['GET', 'POST'],
   },
 });
+
+io.listen(CONFIG.SOCKET_PORT);
 
 @Module({
   imports: [ConfigModule.forRoot()],
