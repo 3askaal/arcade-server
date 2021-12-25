@@ -44,6 +44,12 @@ export function addListeners(io: any, socket: any) {
 
   socket.on('room:join', ({ roomId: id }: RoomPayload) => {
     console.log('event: room:join', id);
+
+    // check if room exists
+    if (!rooms[id]) {
+      return;
+    }
+
     // check if socket exists
     const socketExists = rooms[id]?.players.find(
       ({ socketId }) => socketId === socket.id,
@@ -73,6 +79,11 @@ export function addListeners(io: any, socket: any) {
     rooms[roomId].players = rooms[roomId]?.players.filter(
       ({ socketId }) => socketId !== socket.id,
     );
+
+    if (!rooms[roomId]?.players?.length) {
+      delete rooms[roomId];
+      socket.emit('rooms:update', rooms);
+    }
 
     // leave room
     socket.leave(roomId);
