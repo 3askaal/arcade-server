@@ -4,10 +4,11 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { addListeners } from './app.listeners';
+import { CONFIG } from 'src/config';
 
-export const io = new Server(1338, {
+export const io = new Server(CONFIG.SOCKET_PORT, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'https://b0mberman.vercel.app/'],
     methods: ['GET', 'POST'],
   },
 });
