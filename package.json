@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^8.1.1",
     "@types/randomcolor": "^0.5.6",
     "@types/socket.io": "^3.0.2",
+    "forever": "^4.0.1",
     "mongoose": "^6.1.2",
     "randomcolor": "^0.6.2",
     "reflect-metadata": "^0.1.13",
