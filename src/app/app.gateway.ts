@@ -29,6 +29,7 @@ export class GameGateway {
 
   @SubscribeMessage('room:create')
   onRoomCreate(client: Socket, { name }) {
+    console.log('event: room:create ', name);
     if (!rooms[client.id]) {
       rooms[client.id] = {
         id: client.id,
@@ -77,7 +78,7 @@ export class GameGateway {
 
   @SubscribeMessage('room:leave')
   onRoomLeave(client: Socket, {}) {
-    console.log('receive: room:leave ', client.id);
+    console.log('event: room:leave ', client.id);
     const roomId = client.data.roomId;
 
     if (!rooms[roomId]) {
@@ -117,7 +118,7 @@ export class GameGateway {
 
   @SubscribeMessage('start')
   onStartGame(client: Socket) {
-    console.log('receive: start');
+    console.log('event: start');
     const roomId = client.data.roomId;
 
     const blocks = 16;
@@ -128,22 +129,30 @@ export class GameGateway {
     // format players data
     const players = generatePlayers(rooms[roomId]?.players, blocks);
 
+    // set time
+    const minutes = 3;
+    const time = minutes * 60 * 1000;
+
+    setTimeout(() => {
+      this.server.in(roomId).emit('game:over', { reason: 'time' });
+    }, time);
+
     // update room to start game
-    this.server.in(roomId).emit('game:start', { grid, players });
-    console.log('send: game:start', { grid, players });
+    this.server.in(roomId).emit('game:start', { grid, players, time });
+    console.log('send: game:start', { grid, players, time });
   }
 
   @SubscribeMessage('move')
   onMove(client: Socket, payload: any) {
-    console.log('receive: game:move');
-    client.broadcast.to(client.data.roomId).emit('game:move', payload);
+    console.log('event: game:move');
+    this.server.in(client.data.roomId).emit('game:move', payload);
     console.log('send: game:move', payload);
   }
 
   @SubscribeMessage('bomb')
   onBomb(client: Socket, payload: any) {
-    console.log('receive: game:bomb');
-    client.broadcast.to(client.data.roomId).emit('game:bomb', payload);
+    console.log('event: game:bomb');
+    this.server.in(client.data.roomId).emit('game:bomb', payload);
     console.log('send: game:bomb', payload);
   }
 
@@ -155,6 +164,10 @@ export class GameGateway {
       rooms[roomId].players = rooms[roomId]?.players.filter(
         ({ socketId }) => socketId !== client.id,
       );
+    }
+
+    if (!rooms[roomId]?.players?.length) {
+      delete rooms[roomId];
     }
 
     this.server.in(roomId).emit('room:update', rooms[roomId]);
