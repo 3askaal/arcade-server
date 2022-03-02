@@ -9,7 +9,6 @@ import { generateGrid, generatePlayers } from 'src/generate';
 interface Rooms {
   [roomId: string]: {
     id: string;
-    name: string;
     players: {
       socketId: string;
       name?: string;
@@ -28,52 +27,56 @@ export class GameGateway {
   }
 
   @SubscribeMessage('room:create')
-  onRoomCreate(client: Socket, { name }) {
-    console.log('event: room:create ', name);
-    if (!rooms[client.id]) {
-      rooms[client.id] = {
-        id: client.id,
-        name,
+  onRoomCreate(client: Socket, { roomId }) {
+    console.log('event: room:create ', roomId);
+    if (!rooms[roomId]) {
+      rooms[roomId] = {
+        id: roomId,
         players: [{ socketId: client.id }],
       };
     }
 
-    client.data.roomId = client.id;
+    client.data.roomId = roomId;
 
     console.log('send: rooms:update');
     this.server.emit('rooms:update', rooms);
   }
 
   @SubscribeMessage('room:join')
-  onRoomJoin(client: Socket, { roomId: id }) {
-    console.log('event: room:join ', id);
+  onRoomJoin(client: Socket, { roomId }) {
+    console.log('event: room:join ', roomId);
 
     // check if room exists
-    if (!rooms[id]) {
+    if (!rooms[roomId]) {
+      console.log('room doesnt exist');
       return;
     }
 
     // check if socket exists
-    const socketExists = rooms[id]?.players.find(
+    const socketExists = rooms[roomId]?.players.find(
       ({ socketId }) => socketId === client.id,
     );
 
     if (socketExists) {
+      console.log('socket exists');
       return;
     }
 
     // set roomId for new socket
-    client.data.roomId = id;
+    client.data.roomId = roomId;
 
     // add player to room's data
-    rooms[id].players.push({ socketId: client.id });
+    rooms[roomId].players.push({ socketId: client.id });
 
     // join room
-    client.join(id);
+    client.join(roomId);
 
     // update room
-    this.server.in(id).emit('room:update', rooms[id]);
-    console.log('send: room:update', rooms[id]);
+    this.server.in(roomId).emit('room:update', {
+      ...rooms[roomId],
+      players: rooms[roomId].players.filter(({ name }) => name),
+    });
+    console.log('send: room:update', rooms[roomId]);
   }
 
   @SubscribeMessage('room:leave')
@@ -99,7 +102,10 @@ export class GameGateway {
     client.leave(client.data.roomId);
 
     // update room
-    this.server.in(roomId).emit('room:update', rooms[roomId]);
+    this.server.in(roomId).emit('room:update', {
+      ...rooms[roomId],
+      players: rooms[roomId].players.filter(({ name }) => name),
+    });
     console.log('send: room:update', rooms[roomId]);
   }
 
@@ -107,13 +113,19 @@ export class GameGateway {
   onUpdatePlayer(client: Socket, { name }) {
     const roomId = client.data.roomId;
 
+    console.log('event: update:player', name);
+
     // update player name
     rooms[roomId].players = rooms[roomId]?.players?.map((player) =>
       player.socketId === client.id ? { ...player, name } : player,
     );
 
     // update room
-    this.server.in(roomId).emit('room:update', rooms[roomId]);
+    this.server.in(roomId).emit('room:update', {
+      ...rooms[roomId],
+      players: rooms[roomId].players.filter(({ name }) => name),
+    });
+    console.log('send: room:update', rooms[roomId]);
   }
 
   @SubscribeMessage('start')
