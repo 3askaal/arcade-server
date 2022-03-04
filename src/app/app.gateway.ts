@@ -39,7 +39,6 @@ export class GameGateway {
     client.data.roomId = roomId;
 
     console.log('send: rooms:update');
-    this.server.emit('rooms:update', rooms);
   }
 
   @SubscribeMessage('room:join')
@@ -95,7 +94,6 @@ export class GameGateway {
 
     if (!rooms[roomId]?.players?.length) {
       delete rooms[roomId];
-      client.emit('rooms:update', rooms);
     }
 
     // leave room
