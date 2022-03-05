@@ -18,6 +18,13 @@ interface Rooms {
 
 const rooms: Rooms = {};
 
+const getRoomData = (roomId: string) => {
+  return {
+    ...rooms[roomId],
+    players: rooms[roomId].players.filter(({ name }) => name),
+  };
+};
+
 @WebSocketGateway({ cors: true })
 export class GameGateway {
   @WebSocketServer() server: Server;
@@ -38,7 +45,11 @@ export class GameGateway {
 
     client.data.roomId = roomId;
 
-    console.log('send: rooms:update');
+    // join room
+    client.join(roomId);
+
+    // update room
+    this.server.in(roomId).emit('room:update', getRoomData(roomId));
   }
 
   @SubscribeMessage('room:join')
@@ -71,11 +82,7 @@ export class GameGateway {
     client.join(roomId);
 
     // update room
-    this.server.in(roomId).emit('room:update', {
-      ...rooms[roomId],
-      players: rooms[roomId].players.filter(({ name }) => name),
-    });
-    console.log('send: room:update', rooms[roomId]);
+    this.server.in(roomId).emit('room:update', getRoomData(roomId));
   }
 
   @SubscribeMessage('room:leave')
@@ -100,10 +107,7 @@ export class GameGateway {
     client.leave(client.data.roomId);
 
     // update room
-    this.server.in(roomId).emit('room:update', {
-      ...rooms[roomId],
-      players: rooms[roomId].players.filter(({ name }) => name),
-    });
+    this.server.in(roomId).emit('room:update', getRoomData(roomId));
     console.log('send: room:update', rooms[roomId]);
   }
 
@@ -119,10 +123,7 @@ export class GameGateway {
     );
 
     // update room
-    this.server.in(roomId).emit('room:update', {
-      ...rooms[roomId],
-      players: rooms[roomId].players.filter(({ name }) => name),
-    });
+    this.server.in(roomId).emit('room:update', getRoomData(roomId));
     console.log('send: room:update', rooms[roomId]);
   }
 
