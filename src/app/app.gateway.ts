@@ -149,8 +149,8 @@ export class GameGateway {
     }, time);
 
     // update room to start game
-    this.server.in(roomId).emit('game:start', { grid, players, time });
-    console.log('send: game:start', { grid, players, time });
+    this.server.in(roomId).emit('game:start', { grid, players, time, roomId });
+    console.log('send: game:start', { grid, players, time, roomId });
   }
 
   @SubscribeMessage('move')
