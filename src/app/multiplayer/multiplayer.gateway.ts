@@ -26,7 +26,7 @@ const getRoomData = (roomId: string) => {
 };
 
 @WebSocketGateway({ cors: true })
-export class GameGateway {
+export class MultiplayerGateway {
   @WebSocketServer() server: Server;
 
   handleConnection(client: Socket) {
