@@ -5,6 +5,6 @@ import pack from '../../package.json';
 export class AppController {
   @Get()
   get(): string {
-    return `Bomberman API version: ${pack && pack.version}`;
+    return `Arcade API version: ${pack && pack.version}`;
   }
 }
