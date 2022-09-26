@@ -4,7 +4,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { generateGrid, generatePlayers } from 'src/generate';
+import { generateGrid, generatePlayers } from './generate/bomberman';
 
 interface Rooms {
   [roomId: string]: {
