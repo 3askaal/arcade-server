@@ -4,13 +4,13 @@ import { ScoreModel } from './score.model';
 
 @Injectable()
 export class ScoreService {
-  async getAll(): Promise<IScore[]> {
-    const results: IScore[] = await ScoreModel.find();
+  async getAll(): Promise<IScoreDoc[]> {
+    const results: IScoreDoc[] = await ScoreModel.find();
     return results;
   }
 
-  async getByGame(gameId: string): Promise<IScore[]> {
-    const results: IScore[] = await ScoreModel.find({ gameId });
+  async getByGame(gameId: string): Promise<IScoreDoc[]> {
+    const results: IScoreDoc[] = await ScoreModel.find({ gameId });
     return results;
   }
 
